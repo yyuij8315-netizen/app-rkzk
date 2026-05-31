@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界书编辑器</title>
+<style>
+  :root {
+    /* 深色模式默认变量 */
+    --bg-base: #000000;
+    --bg-gradient: radial-gradient(circle at 15% 50%, rgba(255,255,255,0.03), transparent 35%), radial-gradient(circle at 85% 30%, rgba(255,255,255,0.04), transparent 35%);
+    --panel-bg: rgba(28, 28, 30, 0.7);
+    --sidebar-bg: rgba(20, 20, 22, 0.4);
+    --card-bg: rgba(44, 44, 46, 0.4);
+    --card-hover: rgba(255, 255, 255, 0.05);
+    --border-light: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(255, 255, 255, 0.25);
+    
+    /* 文字颜色 */
+    --text-main: #f5f5f7;
+    --text-muted: #86868b;
+    --text-placeholder: #515154;
+    
+    /* 强调色与状态色 */
+    --accent: #ffffff;
+    --accent-glow: rgba(255, 255, 255, 0.1);
+    --danger: #ff453a;
+    --success: #32d74b;
+    --constant: #0a84ff;
+    --dot-disabled: rgba(255, 255, 255, 0.2);
+    
+    /* 面板属性 */
+    --select-opt-bg: #1c1c1e;
+    --select-opt-text: #ffffff;
+    --input-bg: rgba(255,255,255,0.02);
+    --toggle-bg: rgba(255, 255, 255, 0.1);
+    --toggle-knob-on: #000000;
+    
+    /* 通用物理属性 */
+    --blur: blur(24px);
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --radius-sm: 6px;
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  html[data-theme="light"] {
+    /* 浅色模式（优雅明亮 Apple 风） */
+    --bg-base: #f5f5f7;
+    --bg-gradient: radial-gradient(circle at 15% 50%, rgba(0,0,0,0.01), transparent 35%), radial-gradient(circle at 85% 30%, rgba(0,0,0,0.02), transparent 35%);
+    --panel-bg: rgba(255, 255, 255, 0.75);
+    --sidebar-bg: rgba(240, 240, 245, 0.5);
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --card-hover: rgba(0, 0, 0, 0.03);
+    --border-light: rgba(0, 0, 0, 0.08);
+    --border-focus: rgba(0, 0, 0, 0.2);
+    
+    --text-main: #1d1d1f;
+    --text-muted: #6e6e73;
+    --text-placeholder: #c1c1c6;
+    
+    --accent: #000000;
+    --accent-glow: rgba(0, 0, 0, 0.05);
+    --danger: #ff3b30;
+    --success: #34c759;
+    --constant: #007aff;
+    --dot-disabled: rgba(0, 0, 0, 0.15);
+    
+    --select-opt-bg: #ffffff;
+    --select-opt-text: #1d1d1f;
+    --input-bg: rgba(0, 0, 0, 0.02);
+    --toggle-bg: rgba(0, 0, 0, 0.08);
+    --toggle-knob-on: #ffffff;
+  }
+
+  * { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--bg-base);
+    background-image: var(--bg-gradient);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-weight: 300;
+    font-size: 13px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  /* 滚动条美化 */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(130,130,135,0.25); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(130,130,135,0.45); }
+
+  /* TOP BAR */
+  #topbar {
+    background: var(--panel-bg);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-bottom: 0.5px solid var(--border-light);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  
+  #topbar .title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-main);
+    letter-spacing: 0.05em;
+    margin-right: auto;
+  }
+
+  .btn {
+    background: rgba(128, 128, 128, 0.05);
+    border: 0.5px solid var(--border-light);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 400;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition);
+  }
+  .btn svg { stroke-width: 1.2px; }
+  .btn:hover:not(:disabled) { 
+    border-color: var(--border-focus); 
+    color: var(--text-main); 
+    background: rgba(128, 128, 128, 0.12);
+  }
+  .btn.accent {
+    border-color: var(--border-focus);
+    color: var(--text-main);
+    background: var(--accent-glow);
+  }
+  .btn.accent:hover { background: rgba(128,128,128,0.18); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  
+  .icon-only-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+  }
+  .icon-only-btn:hover { color: var(--text-main); background: rgba(128,128,128,0.08); }
+
+  /* LAYOUT */
+  #body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 250px;
+    min-width: 250px;
+    background: var(--sidebar-bg);
+    border-right: 0.5px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s, background-color 0.3s;
+  }
+  #sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    border-right: none;
+  }
+  #sidebar-header {
+    padding: 12px 16px;
+    border-bottom: 0.5px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  #entry-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .entry-item {
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition);
+    border: 0.5px solid transparent;
+  }
+  .entry-item:hover { background: var(--card-hover); }
+  .entry-item.active {
+    background: var(--card-bg);
+    border-color: var(--border-light);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .entry-item.disabled-entry { opacity: 0.4; }
+  
+  .entry-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .entry-name {
+    flex: 1;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 400;
+  }
+  
+  .entry-btns { 
+    display: flex; 
+    gap: 2px; 
+    flex-shrink: 0; 
+    opacity: 0; 
+    transform: translateX(5px);
+    transition: var(--transition);
+  }
+  .entry-item:hover .entry-btns, .entry-item.active .entry-btns { 
+    opacity: 1; 
+    transform: translateX(0);
+  }
+  
+  .icon-btn {
+    background: none; border: none;
+    color: var(--text-muted); cursor: pointer;
+    padding: 4px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+  }
+  .icon-btn:hover { color: var(--text-main); background: rgba(128,128,128,0.15); }
+  .icon-btn.del:hover { color: var(--danger); background: rgba(255, 69, 58, 0.12); }
+
+  /* EDITOR */
+  #editor {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+  .empty-state svg {
+    color: var(--border-focus);
+    stroke-width: 0.5px;
+    opacity: 0.5;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 8px; }
+  .field-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .lbl {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    font-weight: 400;
+  }
+  
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--input-bg);
+    border: 0.5px solid var(--border-light);
+    color: var(--text-main);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 300;
+    width: 100%;
+    outline: none;
+    transition: var(--transition);
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-placeholder); }
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  select:focus,
+  textarea:focus { 
+    border-color: var(--border-focus); 
+    background: var(--card-bg);
+    box-shadow: 0 0 0 3px rgba(128,128,128,0.05);
+  }
+  
+  textarea {
+    resize: vertical;
+    min-height: 160px;
+    line-height: 1.8;
+  }
+  select option { background: var(--select-opt-bg); color: var(--select-opt-text); }
+
+  /* 内容全屏特定样式 */
+  .field-group.fullscreen-mode {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    background: var(--bg-base) !important;
+    background-image: var(--bg-gradient) !important;
+    padding: 32px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .field-group.fullscreen-mode textarea {
+    flex: 1 !important;
+    height: calc(100% - 32px) !important;
+    min-height: auto !important;
+  }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .toggle {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    background: var(--toggle-bg);
+    position: relative;
+    transition: var(--transition);
+    flex-shrink: 0;
+    border: 0.5px solid rgba(128,128,128,0.05);
+  }
+  .toggle.on { background: var(--text-main); border-color: var(--text-main); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: var(--transition);
+  }
+  .toggle.on::after { 
+    left: 18px; 
+    background: var(--toggle-knob-on);
+  }
+  .toggle-label { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+  .toggle-row:hover .toggle-label { color: var(--text-main); }
+
+  .divider {
+    border-top: 0.5px solid var(--border-light);
+    padding-top: 20px;
+    margin-top: 4px;
+  }
+
+  /* NOTICE */
+  #notice {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--panel-bg);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 0.5px solid var(--border-light);
+    color: var(--text-main);
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: var(--transition);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    z-index: 100;
+  }
+  #notice.show { opacity: 1; transform: translateY(0); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; opacity: 0; pointer-events: none;
+    transition: var(--transition);
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .modal-container {
+    background: var(--panel-bg);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    width: 90%; max-width: 520px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    transform: scale(0.95);
+    transition: var(--transition);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .modal-overlay.show .modal-container { transform: scale(1); }
+  .modal-title { font-size: 15px; font-weight: 500; color: var(--text-main); }
+  .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+  @media (max-width: 600px) {
+    #sidebar { width: 180px; min-width: 180px; }
+    #editor { padding: 16px; }
+  }
+  
+  /* SVG 图标共用样式 */
+  .icon {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="title">World Book</span>
+  <button class="icon-only-btn" id="toggle-sidebar-btn" onclick="toggleSidebar()" title="切换侧边栏">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <button class="icon-only-btn" id="theme-btn" onclick="toggleTheme()" title="切换明暗主题">
+    <svg class="icon theme-icon-dark" id="theme-icon-dark" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="icon theme-icon-light" id="theme-icon-light" viewBox="0 0 24 24" style="display:none;"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 18.36l1.42-1.42M18.36 4.22l1.42-1.42"/></svg>
+  </button>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+  <button class="btn" onclick="document.getElementById('import-file').click()">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+    导入
+  </button>
+  <button class="btn" id="export-btn" onclick="exportJSON()" disabled>
+    <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 14l5-5 5 5M12 9v12"/></svg>
+    导出
+  </button>
+</div>
+
+<div id="body">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <span id="entry-count">0 项</span>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn" style="padding:4px 8px; font-size:12px; gap:3px;" onclick="openParseModal()" title="将文本直接解析为条目">
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px; height:12px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          解析
+        </button>
+        <button class="btn accent" style="padding:4px 10px;font-size:12px;gap:4px;" onclick="addEntry()">
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M12 5v14M5 12h14"/></svg>
+          新建
+        </button>
+      </div>
+    </div>
+    <div id="entry-list">
+      <div style="padding:30px 12px;color:var(--text-muted);font-size:12px;text-align:center;font-weight:300;">
+        导入 JSON 或新建条目
+      </div>
+    </div>
+  </div>
+
+  <div id="editor">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="4"/>
+        <path d="M3 9h18M9 21V9"/>
+      </svg>
+      <div>选择或新建条目开始编辑</div>
+    </div>
+  </div>
+</div>
+
+<!-- 自动解析弹窗 -->
+<div class="modal-overlay" id="parse-modal">
+  <div class="modal-container">
+    <div class="modal-title">⚡ 文本自动解析为新条目</div>
+    <div class="field-group">
+      <div class="lbl">请在此输入或粘贴想要放入条目的设定、故事或文本内容：</div>
+      <textarea id="parse-text-input" placeholder="例如：描述一段精彩的情节或完整的设定背景...&#10;系统将自动为您创建一个新条目并将全部内容填入其「内容」字段中，其他字段将默认保持空置。" style="min-height: 220px;"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" onclick="closeParseModal()">取消</button>
+      <button class="btn accent" onclick="submitParseText()">开始解析生成</button>
+    </div>
+  </div>
+</div>
+
+<div id="notice">
+  <svg class="icon" viewBox="0 0 24 24" style="color:var(--success)"><path d="M20 6L9 17l-5-5"/></svg>
+  <span>已导出</span>
+</div>
+
+<script>
+let entries = [];
+let selectedId = null;
+let nextUid = 0;
+let sidebarOpen = true;
+let contentFullscreen = false; // 全屏状态变量
+
+const POSITIONS = [
+  [0, "角色定义之前"],
+  [1, "角色定义之后"],
+  [2, "示例消息前 (↑EM)"],
+  [3, "示例消息后 (↓EM)"],
+  [4, "作者注释之前"],
+  [5, "作者注释之后"],
+  [6, "@D [系统] 在深度"],
+  [7, "@D [用户] 在深度"],
+  [8, "@D [AI] 在深度"],
+];
+
+const svgUp = `<svg class="icon" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`;
+const svgDown = `<svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>`;
+const svgDel = `<svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+
+function createEntry(uid) {
+  return {
+    uid,
+    comment: "新条目",
+    key: [],
+    keysecondary: [],
+    content: "",
+    constant: false,
+    disable: false,
+    selective: false,
+    selectiveLogic: 0,
+    order: 100,
+    position: 1,
+    probability: 100,
+    useProbability: true,
+    scanDepth: 4,
+    caseSensitive: false,
+    matchWholeWords: false,
+    group: "",
+    groupWeight: 100,
+    depth: 4,
+    role: 0,
+    automationId: "",
+  };
+}
+
+function addEntry() {
+  const e = createEntry(nextUid++);
+  entries.push(e);
+  selectedId = e.uid;
+  renderAll();
+}
+
+function deleteEntry(uid) {
+  entries = entries.filter(e => e.uid !== uid);
+  if (selectedId === uid) {
+    selectedId = entries.length > 0 ? entries[0].uid : null;
+  }
+  renderAll();
+}
+
+function selectEntry(uid) {
+  selectedId = uid;
+  renderAll();
+}
+
+function moveEntry(uid, dir) {
+  const i = entries.findIndex(e => e.uid === uid);
+  const j = i + dir;
+  if (j < 0 || j >= entries.length) return;
+  [entries[i], entries[j]] = [entries[j], entries[i]];
+  renderAll();
+}
+
+function getSelected() {
+  return entries.find(e => e.uid === selectedId) || null;
+}
+
+function updateField(field, value) {
+  const e = getSelected();
+  if (!e) return;
+  e[field] = value;
+  renderSidebar();
+}
+
+// ── FULLSCREEN TOGGLE LOGIC ────────────────────────────
+function toggleContentFullscreen(event) {
+  if (event) event.preventDefault();
+  contentFullscreen = !contentFullscreen;
+  
+  const group = document.getElementById('content-group');
+  const icon = document.getElementById('fs-icon');
+  const text = document.getElementById('fs-text');
+  
+  if (!group) return;
+  
+  if (contentFullscreen) {
+    group.classList.add('fullscreen-mode');
+    if (text) text.textContent = '退出';
+    if (icon) icon.innerHTML = '<path d="M4 14h4v4M20 14h-4v4M4 10h4V6M20 10h-4V6"/>';
+  } else {
+    group.classList.remove('fullscreen-mode');
+    if (text) text.textContent = '全屏';
+    if (icon) icon.innerHTML = '<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>';
+  }
+}
+
+// ── AUTOMATIC PARSING LOGIC ────────────────────────────
+
+function openParseModal() {
+  document.getElementById('parse-text-input').value = '';
+  document.getElementById('parse-modal').classList.add('show');
+  document.getElementById('parse-text-input').focus();
+}
+
+function closeParseModal() {
+  document.getElementById('parse-modal').classList.remove('show');
+}
+
+function submitParseText() {
+  const contentText = document.getElementById('parse-text-input').value.trim();
+  if (!contentText) {
+    closeParseModal();
+    return;
+  }
+  
+  const e = createEntry(nextUid++);
+  e.content = contentText;
+  
+  let autoTitle = contentText.split('\n')[0].replace(/^[-*\s•#]+/, '').trim();
+  if (autoTitle.length > 15) {
+    autoTitle = autoTitle.substring(0, 15) + '...';
+  }
+  e.comment = autoTitle || "解析生成的条目";
+  
+  entries.push(e);
+  selectedId = e.uid;
+  
+  renderAll();
+  closeParseModal();
+  showNotice('✓ 已自动解析并生成新条目');
+}
+
+// ── THEME MANAGER ──────────────────────────────────────
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('wb-theme') || 'dark';
+  setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('wb-theme', theme);
+  
+  const darkIcon = document.getElementById('theme-icon-dark');
+  const lightIcon = document.getElementById('theme-icon-light');
+  if (theme === 'light') {
+    if(darkIcon) darkIcon.style.display = 'none';
+    if(lightIcon) lightIcon.style.display = 'block';
+  } else {
+    if(darkIcon) darkIcon.style.display = 'block';
+    if(lightIcon) lightIcon.style.display = 'none';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// ── RENDER ────────────────────────────────────────────
+
+function renderAll() {
+  renderSidebar();
+  renderEditor();
+  document.getElementById('export-btn').disabled = entries.length === 0;
+}
+
+function renderSidebar() {
+  document.getElementById('entry-count').textContent = entries.length + ' 项';
+  const list = document.getElementById('entry-list');
+
+  if (entries.length === 0) {
+    list.innerHTML = '<div style="padding:30px 12px;color:var(--text-muted);font-size:12px;text-align:center;font-weight:300;">导入 JSON 或新建条目</div>';
+    return;
+  }
+
+  list.innerHTML = entries.map((e, idx) => {
+    let dotColor = 'var(--text-muted)';
+    if (e.disable) dotColor = 'var(--dot-disabled)';
+    else if (e.constant) dotColor = 'var(--constant)';
+    else dotColor = 'var(--success)';
+    
+    const active = e.uid === selectedId ? 'active' : '';
+    const disabled = e.disable ? 'disabled-entry' : '';
+    return `
+      <div class="entry-item ${active} ${disabled}" onclick="selectEntry(${e.uid})">
+        <div class="entry-dot" style="color:${dotColor}; background:${dotColor};"></div>
+        <div class="entry-name">${escHtml(e.comment || '无名条目')}</div>
+        <div class="entry-btns">
+          <button class="icon-btn" onclick="event.stopPropagation();moveEntry(${e.uid},-1)" title="上移">${svgUp}</button>
+          <button class="icon-btn" onclick="event.stopPropagation();moveEntry(${e.uid},1)" title="下移">${svgDown}</button>
+          <button class="icon-btn del" onclick="event.stopPropagation();deleteEntry(${e.uid})" title="删除">${svgDel}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderEditor() {
+  const editor = document.getElementById('editor');
+  const e = getSelected();
+
+  if (!e) {
+    editor.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="4"/>
+          <path d="M3 9h18M9 21V9"/>
+        </svg>
+        <div>选择或新建条目开始编辑</div>
+      </div>`;
+    return;
+  }
+
+  const posOptions = POSITIONS.map(([v, l]) =>
+    `<option value="${v}" ${e.position === v ? 'selected' : ''}>${l}</option>`
+  ).join('');
+
+  // 渲染时保持全屏状态样式一致
+  const fsClass = contentFullscreen ? 'fullscreen-mode' : '';
+  const fsText = contentFullscreen ? '退出' : '全屏';
+  const fsIconPath = contentFullscreen 
+    ? '<path d="M4 14h4v4M20 14h-4v4M4 10h4V6M20 10h-4V6"/>' 
+    : '<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>';
+
+  editor.innerHTML = `
+    <div class="field-group">
+      <div class="lbl">NAME / 条目名称</div>
+      <input type="text" value="${escAttr(e.comment)}"
+        oninput="updateField('comment',this.value);document.querySelectorAll('.entry-item.active .entry-name').forEach(n=>n.textContent=this.value||'无名条目')"
+        placeholder="给这个条目起个名字">
+    </div>
+
+    <div class="field-group">
+      <div class="lbl">KEYWORDS / 触发关键词（逗号分隔）</div>
+      <input type="text" value="${escAttr(e.key.join(', '))}"
+        oninput="updateField('key',this.value.split(',').map(k=>k.trim()).filter(Boolean))"
+        placeholder="关键词1, 关键词2, 关键词3">
+    </div>
+
+    <div class="field-row">
+      <div class="field-group" style="flex:2;min-width:140px">
+        <div class="lbl">POSITION / 插入位置</div>
+        <select onchange="updateField('position',Number(this.value))">${posOptions}</select>
+      </div>
+      <div class="field-group" style="min-width:100px;flex:1;">
+        <div class="lbl">ORDER / 优先级</div>
+        <input type="number" value="${e.order}"
+          oninput="updateField('order',Number(this.value))">
+      </div>
+      <div class="field-group" style="min-width:100px;flex:1;">
+        <div class="lbl">DEPTH / 扫描深度</div>
+        <input type="number" value="${e.scanDepth}"
+          oninput="updateField('scanDepth',Number(this.value))">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin: 8px 0;">
+      <div class="toggle-row" onclick="toggleField('constant')">
+        <div class="toggle ${e.constant ? 'on' : ''}"></div>
+        <span class="toggle-label">常驻注入</span>
+      </div>
+      <div class="toggle-row" onclick="toggleField('disable')">
+        <div class="toggle ${e.disable ? 'on' : ''}"></div>
+        <span class="toggle-label">禁用</span>
+      </div>
+      <div class="toggle-row" onclick="toggleField('caseSensitive')">
+        <div class="toggle ${e.caseSensitive ? 'on' : ''}"></div>
+        <span class="toggle-label">区分大小写</span>
+      </div>
+    </div>
+
+    <div class="field-group divider ${fsClass}" id="content-group">
+      <div class="lbl" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>CONTENT / 内容</span>
+        <button class="icon-btn" onclick="toggleContentFullscreen(event)" title="全屏观看/编辑" style="padding: 2px 6px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
+          <svg class="icon" viewBox="0 0 24 24" id="fs-icon">${fsIconPath}</svg>
+          <span style="font-size: 11px;" id="fs-text">${fsText}</span>
+        </button>
+      </div>
+      <textarea oninput="updateField('content',this.value)"
+        placeholder="注入给 AI 的设定内容...">${escHtml(e.content)}</textarea>
+    </div>
+
+    <div class="field-group">
+      <div class="lbl">SECONDARY KEYWORDS / 二级关键词（选填）</div>
+      <input type="text" value="${escAttr(e.keysecondary.join(', '))}"
+        oninput="updateField('keysecondary',this.value.split(',').map(k=>k.trim()).filter(Boolean))"
+        placeholder="配合可选过滤器使用">
+    </div>
+
+    <div class="field-row">
+      <div class="field-group" style="flex:2;min-width:140px">
+        <div class="lbl">GROUP / 包含组（选填）</div>
+        <input type="text" value="${escAttr(e.group)}"
+          oninput="updateField('group',this.value)"
+          placeholder="设定组名">
+      </div>
+      <div class="field-group" style="min-width:100px;flex:1;">
+        <div class="lbl">WEIGHT / 组权重</div>
+        <input type="number" value="${e.groupWeight}"
+          oninput="updateField('groupWeight',Number(this.value))">
+      </div>
+    </div>
+  `;
+}
+
+function toggleField(field) {
+  const e = getSelected();
+  if (!e) return;
+  e[field] = !e[field];
+  renderAll();
+}
+
+// ── IMPORT / EXPORT ───────────────────────────────────
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      let arr;
+      if (Array.isArray(data.entries)) arr = data.entries;
+      else if (data.entries && typeof data.entries === 'object') arr = Object.values(data.entries);
+      else throw new Error();
+
+      entries = arr.map((raw, i) => {
+        const base = createEntry(i);
+        return {
+          ...base,
+          ...raw,
+          uid: i,
+          key: Array.isArray(raw.key) ? raw.key
+               : String(raw.key || '').split(',').map(k => k.trim()).filter(Boolean),
+          keysecondary: Array.isArray(raw.keysecondary) ? raw.keysecondary : [],
+        };
+      });
+      nextUid = entries.length;
+      selectedId = entries.length > 0 ? entries[0].uid : null;
+      renderAll();
+    } catch {
+      alert('导入失败：JSON 格式不对，请检查文件');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function exportJSON() {
+  const obj = {};
+  entries.forEach((e, i) => { obj[i] = { ...e }; });
+  const json = JSON.stringify({ entries: obj }, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'world_info.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotice('已导出 world_info.json');
+}
+
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+}
+
+function showNotice(msg) {
+  const n = document.getElementById('notice');
+  n.querySelector('span').textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 2500);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+
+initTheme();
+renderAll();
+</script>
+</body>
+</html>
